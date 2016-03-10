@@ -1,5 +1,12 @@
 #!/bin/bash
 
+if [ -z ${CMSSW_BASE+x} ]; then
+    echo "CMSSW_BASE not defined, bailing out.";
+    exit 1;
+fi
+
+#----------------------------------------------------------------
+
 getExternals()
 {
     mkdir  ${tard}/external
@@ -55,7 +62,7 @@ getExternals()
     echo "Copying external headers."
 
     mkdir ${tard}/external/var-inc
-    for i in CLHEP HepMC boost sigcpp tbb; do
+    for i in CLHEP HepMC boost sigcpp; do
       # scram tool info $i | grep INCL | head -1
        edir=`scram tool info $i | grep INCL | head -1| perl -ne 'if ($_ =~/\=(.*)$/) {print "$1\n"}'`
        if [ -n $edir ]; then
@@ -87,6 +94,7 @@ getExternals()
 }
 
 #----------------------------------------------------------------
+
 getCmsSources()
 {
     echo "get list from $fwpl"
@@ -151,21 +159,26 @@ getFireworksSources()
 
    # link to config files
    cd  $tard
+
    ln -s  src/Fireworks/Core/macros/aod.fwc .
    ln -s  src/Fireworks/Core/macros/ispy.fwc .
    ln -s  src/Fireworks/Core/macros/pflow.fwc .
    ln -s  src/Fireworks/Core/macros/miniaod.fwc .
    ln -s  src/Fireworks/Core/macros/simGeo.fwc .
    ln -s  src/Fireworks/Core/macros/overlaps.fwc .
-   
-   ln -s  src/Fireworks/Core/scripts/cmsShow .   
+
+   # XXXX Take this from FireworksStandalone ???
+   ln -s  src/Fireworks/Core/scripts/cmsShow .
+
+   cd ..
 }
 
 #----------------------------------------------------------------
 
 getCmsLibs()
 {
-mkdir -p $tard/lib
+    mkdir -p $tard/lib
+
     echo "=========================================================="
     echo "=========================================================="
     echo "get CMS libs"
@@ -184,11 +197,8 @@ mkdir -p $tard/lib
     perl -i -ne 'print unless /Utilities\/ReleaseScripts/' ${fwl}tmp
 
 
-
-
     libl=`cat ${fwl}tmp |  perl -ne 'if( ~/(.+)\/(.+)$/){print "$1$2 ";}'`
     libl_extra=`echo $extra_list | perl -pe '{ s/\///og;}'`
-
 
     echo "get FWLite libraries"
 set -x
@@ -223,10 +233,13 @@ getDataFiles()
    # sample files
    cd ${tard}
    name=`perl -e '($ver, $a, $b, $c) = split('_', $ENV{CMSSW_VERSION}); print  "data", $a, $b, ".root"  '`
-   $dwnCmd data.root  http://amraktad.web.cern.ch/amraktad/scratch0/data/$name
 
- #  mc_name=`perl -e '($ver, $a, $b, $c) = split('_', $ENV{CMSSW_VERSION}); print  "mc", $a, $b, ".root"  '`
- #  $dwnCmd mc.root http://amraktad.web.cern.ch/amraktad/mail/scratch0/data/$mc_name
+   # XXXX
+   # $dwnCmd data.root  http://amraktad.web.cern.ch/amraktad/scratch0/data/$name
+   $dwnCmd relval-qcd-7.4.root http://fireworks.web.cern.ch/fireworks/7.4/RelValProdQCD-aod.root
+   
+   # mc_name=`perl -e '($ver, $a, $b, $c) = split('_', $ENV{CMSSW_VERSION}); print  "mc", $a, $b, ".root"  '`
+   # $dwnCmd mc.root http://amraktad.web.cern.ch/amraktad/mail/scratch0/data/$mc_name
 
    #geometry files
    cp $CMSSW_RELEASE_BASE/external/$SCRAM_ARCH/data/Fireworks/Geometry/data/cmsSimGeom-* ${tard}
@@ -305,7 +318,6 @@ fi
 echo -e "Start packaging .... \n"
 
 
-
 if [ -z $doForce ] && [ -e $tard ] ; then
    echo "Destination directory  [$tard] already exists. Use --force option."
    exit 1;
@@ -326,22 +338,22 @@ if [ -z fwlite_list ]; then
 else
    fwl=$fwlite_list
 fi
-extra_list="/CondFormats/Serialization /Geometry/CommonDetUnit /DataFormats/MuonSeed"
-getCmsSources
-getFireworksSources
 
-exit
+# >> Fixed by Shazo?
+# extra_list="/CondFormats/Serialization /Geometry/CommonDetUnit /DataFormats/MuonSeed"
+
 getExternals
 getCmsSources
 getFireworksSources
 
-
 getCmsLibs
 
+# Is this still needed?
 cp /usr/include/wchar.h $tard/external/var-inc
+
 getDataFiles
+
 echo $tard
 if [ -n "$doTar" ] ; then
    makeTar
 fi
-
