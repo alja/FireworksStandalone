@@ -73,7 +73,7 @@ DataFormats/TrackerRecHit2D
 DataFormats/TrackingRecHit
 DataFormats/TrajectorySeed
 DataFormats/TrajectoryState
-DataFormtas/TrackerCommon
+DataFormats/TrackerCommon
 DataFormats/VertexReco
 DataFormats/WrappedStdDictionaries
 FWCore/Common
