@@ -55,7 +55,7 @@ getExternals()
     echo "Copying external headers."
 
     mkdir ${tard}/external/var-inc
-    for i in CLHEP HepMC boost sigcpp; do
+    for i in CLHEP HepMC boost sigcpp tbb; do
       # scram tool info $i | grep INCL | head -1
        edir=`scram tool info $i | grep INCL | head -1| perl -ne 'if ($_ =~/\=(.*)$/) {print "$1\n"}'`
        if [ -n $edir ]; then
