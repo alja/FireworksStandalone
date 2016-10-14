@@ -6,17 +6,13 @@ if [ -z ${CMSSW_BASE+x} ]; then
 fi
 
 #----------------------------------------------------------------
-
-getExternals()
+getGCC()
 {
-    mkdir  ${tard}/external
-
-    ext=$CMS_PATH/$SCRAM_ARCH/external # this used to be CMSSW_DATA_PATH
     echo "=========================================================="
     echo "=========================================================="
-
+    echo "Copy gcc subdirs"
+    
     cd $CMSSW_BASE
-	echo "Copy gcc subdirs"
     scram tool tag gcc-ccompiler GCC_CCOMPILER_BASE
     gccd_src=`scram tool tag gcc-ccompiler GCC_CCOMPILER_BASE`
 
@@ -26,35 +22,35 @@ getExternals()
 	cp -a $gccd_src/bin $gccd_target
 
     if [ `uname` = "Darwin" ]; then
-   	   cp -a $gccd_src/lib $gccd_target/lib64
+       cp -a $gccd_src/lib $gccd_target/lib64
     else
        cp -a $gccd_src/lib64 $gccd_target/lib64
     fi
-    echo "=========================================================="
-    echo "=========================================================="
+}
 
+getCMSExternals()
+{
+    echo "=========================================================="
+    echo "=========================================================="
     echo "Copying external libraries from $ext to $extdl."
 
-   # external libraries
+ 
+    # external libraries
     extdl=${tard}/external/lib
     mkdir $extdl
-    extt=/tmp/cmsswExt
-    ls -l $CMSSW_RELEASE_BASE/external/$SCRAM_ARCH/lib/* > $extt
-   # cp -a $ext/*/*/lib/*  ${tard}/external/lib
     for i in boost bz2lib castor clhep dcap db4 dcap \
         expat fftw3 gdbm gsl hepmc\
-   	libjpg libpng libtiff libungif \
+   	libjpg libpng libtiff giflib libungif libjpeg-turbo tinyxml\
    	openssl pcre \
    	sigcpp  xrootd zlib xz freetype tbb
     do
         export i;
-        ever=`grep $i $extt |  perl -ne 'if ($_ =~ /$ENV{i}\/(.*)\/lib\/(.*)/ ) {print "$1\n"; last;}'`
-        echo "copy $i $ever"
-        if [ -z "$ever" ]; then
+        scram tool tag $i LIBDIR
+        if [ $? -ne 0 ]; then
             echo "!!!!!!!! can't get externals for $i"
+	else 
+            cp -a `scram tool tag $i LIBDIR`/* ${extdl}
 	fi
-        # echo "cp -a $ext/$i/$ever/lib/* === ${extdl}"
-        cp -a $ext/$i/$ever/lib/* ${extdl}
     done
 
     echo "=========================================================="
@@ -63,34 +59,34 @@ getExternals()
 
     mkdir ${tard}/external/var-inc
     for i in CLHEP HepMC boost sigcpp; do
-      # scram tool info $i | grep INCL | head -1
-       edir=`scram tool info $i | grep INCL | head -1| perl -ne 'if ($_ =~/\=(.*)$/) {print "$1\n"}'`
-       if [ -n $edir ]; then
-          cp -r $edir/* ${tard}/external/var-inc
+       scram tool tag $i INCLUDE
+       if [ $? -eq 0 ]; then
+         echo cp -r `scram tool tag $i INCLUDE` ${tard}/external/var-inc
        fi
     done
 
+}
+getROOT()
+{
     echo "=========================================================="
     echo "=========================================================="
-   # can be linked or installed at $ROOTSYS   
-    ROOTSYS=`echo $ROOTSYS |  sed 's/\/$//'` # remove '/' character  at end of string, becuse it invalidates symblic link interpretation
-    origr=$ROOTSYS
-    if [ -L ${ROOTSYS} ]; then
-	b=`dirname ${ROOTSYS}`   
-	if [ `uname` = "Linux" ]; then
-            origr=`readlink -f ${ROOTSYS}`
-	else
-            origr=`readlink ${ROOTSYS}`
-	fi
+    echo "Copy ROOT"
+
+    scram tool tag root_interface ROOT_INTERFACE_BASE
+    if [ $? -eq 0 ]; then
+	base=`scram tool tag root_interface ROOT_INTERFACE_BASE`
+	cp -a $base  ${tard}/external/
+	root_ver=`basename $base`
+	ln -s  ${tard}/external/${root_ver}  ${tard}/external/root
     fi
-    
-    echo "copy root from $origr to ${tard}/external/root"
-   # pushd $PWD
-   # cd $ROOTSYS
-   # ROOTSYS=${tard}/external/root make install
-   # popd
-    cp -a $origr  ${tard}/external/root
-     
+}
+
+getExternals()
+{
+    mkdir  ${tard}/external
+    getGCC
+    getROOT
+    getCMSExternals
 }
 
 #----------------------------------------------------------------
@@ -190,6 +186,8 @@ getCmsLibs()
 
     cat $fwl | grep -v '\.h$' >  ${fwl}tmp
 
+    cat  ${fwl}tmp
+    echo" ###########################"
     # remove package without libs
     perl -i -ne 'print unless /Fireworks\/Macros/'         ${fwl}tmp
     perl -i -ne 'print unless /FWCore\/PythonUtilities/'   ${fwl}tmp
@@ -210,8 +208,8 @@ set -x
        else
 	      cp -f $CMSSW_RELEASE_BASE/lib/$SCRAM_ARCH/*${i}* $tard/lib
        fi
-	   grep $i  $CMSSW_RELEASE_BASE/lib/$SCRAM_ARCH/.edmplugincache  >> $cn
 	   grep $i  $CMSSW_BASE/lib/$SCRAM_ARCH/.edmplugincache  >> $cn
+	   grep $i  $CMSSW_RELEASE_BASE/lib/$SCRAM_ARCH/.edmplugincache  >> $cn
     done
 set +x 
 
@@ -306,6 +304,12 @@ echo "usage [$i] ----"
 esac
 done
 
+
+if [ -z $fwlite_list ] ; then
+    echo "Need to specify FWLite packages"
+    exit
+fi
+    
 export tard
 tard=`perl -e '{$a = $ENV{tard}; $a =~ s/^~/$ENV{HOME}/;$a =~ s/^\./$ENV{PWD}/; print "$a"; }'`
 
@@ -339,10 +343,12 @@ else
    fwl=$fwlite_list
 fi
 
+
 # >> Fixed by Shazo?
 # extra_list="/CondFormats/Serialization /Geometry/CommonDetUnit /DataFormats/MuonSeed"
 
 getExternals
+exit
 getCmsSources
 getFireworksSources
 
