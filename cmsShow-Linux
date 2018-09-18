@@ -91,6 +91,14 @@ setupEnv()
 
    source "$SHELLDIR/env.sh"
    
+   export CMSSW_BASE=$SHELLDIR/cms/fwlite/$CMSSW_VERSION
+   
+   for i in $SHELLDIR/cms/data-Fireworks-Geometry/*; do export CMSSW_SEARCH_PATH=$i:$CMSSW_SEARCH_PATH;done
+   
+   . $SHELLDIR/lcg/root/6.12.07-gnimlf5/bin/thisroot.sh
+
+   for i in ` ls -d $SHELLDIR/external/*/*/lib`; do  LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$i; done
+   
 }
 
 printEnv()
