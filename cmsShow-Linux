@@ -6,10 +6,8 @@ checkOS()
 {
    # Only 64-bit arch supported, and OSX version 10.6 or more.
 
-  
+   osname=`uname -s`
    if [ f$osname = f"Darwin" ]; then
-
-       gdbCmd="lldb --"
        arch=`sysctl hw | grep 64bit | awk '{print $2;}'`
        if [ $arch -eq 0 ]; then
            echo "###################################"
@@ -90,42 +88,15 @@ setupEnv()
    if [ ! -n "$SHELLDIR" ] || [ "$SHELLDIR" = "." ] ; then
      export SHELLDIR=$PWD
    fi
-   
-   # see if we are running in standalone mode
-   if [ ! -d $SHELLDIR/../../.SCRAM ] ; then
-     export CMSSW_BASE=$SHELLDIR
-     export CMSSW_SEARCH_PATH=".:$CMSSW_BASE"
-     export CMSSW_DATA_PATH="."
-     export ROOTSYS=$CMSSW_BASE/external/root 
-     export LD_LIBRARY_PATH=${CMSSW_BASE}/external/gcc/lib64:${ROOTSYS}/lib:${CMSSW_BASE}/external/lib:${CMSSW_BASE}/lib:$LD_LIBRARY_PATH
-     export DYLD_FALLBACK_LIBRARY_PATH=/opt/X11/lib:${LD_LIBRARY_PATH}
 
-     if [ -n "$DYLD_LIBRARY_PATH" ]; then
-        echo "Warning: DYLD_LIBRARY_PATH not empty. Unsetting DYLD_LIBRARY_PATH." 
-        unset DYLD_LIBRARY_PATH
-     fi
-     export  DYLD_LIBRARY_PATH=$CMSSW_BASE/external/gcc/lib64
-     export PATH=${ROOTSYS}/bin:$PATH
-     # move cmsShow.exe to libexec
-     SHELLDIR=$SHELLDIR/libexec
-     export ROOT_INCLUDE_PATH=${CMSSW_BASE}/external/gcc/include:${CMSSW_BASE}/external/gcc/include/x86_64-redhat-linux-gnu:${CMSSW_BASE}/external/gcc/include/backward:${CMSSW_BASE}/external/var-inc:$CMSSW_BASE/external/var-inc/sigc++:$CMSSW_BASE/external/var-inc/hepmc/include:${CMSSW_BASE}/src:${CMSSW_BASE}/external/lib/sigc++-2.0/include:${CMSSW_BASE}/external/gcc/include/c++/4.9.2/
-   else
-     export FROM_RELEASE=true
-   fi
-
- if [ f$osname = f"Darwin" ]; then
-    ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH:${CMSSW_BASE}/external/gcc/include/c++/4.9.2/x86_64-apple-darwin12.6.0
-    osv=`sw_vers -productVersion |awk '{split($0,a,"\."); print a[1]a[2];}' `
- fi
-
+   source "$SHELLDIR/env.sh"
    
 }
-
 
 printEnv()
 {
    # Needed only for debugging of a standalone version
-   for i in CMSSW_BASE CMSSW_SEARCH_PATH CMSSW_DATA_PATH ROOTSYS LD_LIBRARY_PATH DYLD_FALLBACK_LIBRARY_PATH DYLD_LIBRARY_PATH PATH SHELLDIR ROOT_INCLUDE_PATH; do
+   for i in CMSSW_BASE CMSSW_SEARCH_PATH CMSSW_DATA_PATH LD_LIBRARY_PATH  DYLD_FALLBACK_LIBRARY_PATH PATH SHELLDIR; do
        echo export $i=`eval echo \\$$i`
    done
    exit;
@@ -182,7 +153,7 @@ errorPrint()
 ################################################################################
 # Main body of script starts here
 ################################################################################
-osname=`uname -s`
+
 setupEnv
 if [ -z "$FROM_RELEASE" ]; then 
    checkOS
@@ -200,22 +171,25 @@ fi
 
 # Developers cases -- run from gdb or valgrind.
 if [ "X$debuginteractiveflag" = Xon ] ; then
-  gdbCmd="gdb --args " "$SHELLDIR/cmsShow.exe" $originalOptions
-  if-shell 'test "$(uname)" = "Darwin"' gdbCmd="lldb -- "
+  if [[ `uname` == 'Linux' ]]; then
+      gdbCmd="gdb --args cmsShow.exe $originalOptions"
+  else
+      gdbCmd="lldb -- cmsShow.exe $originalOptions"
+  fi
   exec $gdbCmd 
 elif [ "X$valgrindflag" = Xon ] ; then
   # MT: This should supposedly get rid of ROOT dicitonary reports etc. but it
   # didn't seem to work very well when I tried it (so I disabled error limit).
   # --suppressions=$ROOTSYS/etc/valgrind-root.supp
   valgrind --num-callers=30 --log-file=valgrind.log.$$ --freelist-vol=100000000 \
-    --error-limit=no  "$SHELLDIR/cmsShow.exe" $originalOptions
+    --error-limit=no  "cmsShow.exe" $originalOptions
   exit;
 fi
 
 
 # Run cmsShow  
 creport=`mktemp /tmp/cmsshow-crash-report-XXXXXXXX`.txt
-"$SHELLDIR/cmsShow.exe" $originalOptions 2> >( tee $creport) 
+"cmsShow.exe" $originalOptions 2> >( tee $creport) 
 exitStatus=$?
 if [ $exitStatus -gt 0 ] && [ $exitStatus -ne 137 ] && [ "$rootflag" != "on" ] ; then 
    writeSystemInfoToFile $creport
