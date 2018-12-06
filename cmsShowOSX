@@ -1,0 +1,33 @@
+#!/bin/bash
+
+parseOptions()
+{
+   # We store in originalOptions all the options that need to be passed to the
+   # actual cmsShow.exe executable but not those that are specific for the wrapper
+   # file itself.
+
+   while [ $# -gt 0 ]
+   do
+       case "$1" in
+         --soft)  softflag=on ; originalOptions="${originalOptions} --soft";;
+         -d|--debug) debugflag=on; originalOptions="${originalOptions} --debug";;
+         -di|--debug-interactive) debuginteractiveflag=on;;
+         --valgrind) valgrindflag=on;;
+         --prompt) originalOptions="${originalOptions} $1 -r";;
+         --eve) originalOptions="${originalOptions} --eve -r";;
+         -r|--root-interactive) rootflag=on; originalOptions="${originalOptions} -r";;
+         *) originalOptions="$originalOptions $1";;
+       esac
+       shift
+   done
+}
+
+parseOptions $@
+
+export origDir=$PWD
+. /Volumes/Fireworks/bin/spackenv.sh
+. /Volumes/Fireworks/bin/env.sh
+cd /Volumes/Fireworks/CMSSW_10_3_1
+eval `scram run -sh`
+cd $origDir
+cmsShow.exe $originalOptions
