@@ -10,4 +10,4 @@ https://twiki.cern.ch/twiki/bin/view/CMS/FireworkkTarballInstructions
 
 
 # recent checklist
- * Check PATH is not overriden by ubuntu
+ * PATH must not overriden fo Ubuntu
