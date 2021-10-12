@@ -17,3 +17,8 @@ ln -s  ../../../../../../../../slc7_amd64_gcc900/cms/data-Fireworks-Geometry/*/F
 add search path to CMSSW_SEARCH_PATH in env script
 CMSSW_SEARCH_PATH=$CMSSW_SEARCH_PATH:$CMSSW_RELEASE_BASE/external/$SCRAM_ARCH/data
 ```
+
+## getting samples
+```
+ cmsRun ~/sample.py url=file:/eos/cms/store/relval/CMSSW_11_0_0_pre5/RelValZTT_13/GEN-SIM-RECO/PU25ns_110X_mcRun2_asymptotic_v2-v1/20000/8149B422-F060-AB40-A98F-ADFAB279FD27.root out=test.root
+ ```
