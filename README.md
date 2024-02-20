@@ -12,7 +12,7 @@ for i in ls -d $SHELLDIR/$SCRAM_ARCH/external/*/*/lib; do LD_LIBRARY_PATH=$LD_LI
 ``` 
 mkdir -p $SCRAM_ARCH/cms/fwlite/$CMSSW_VERSION/external/$SCRAM_ARCH/data/Fireworks
 cd $SCRAM_ARCH/cms/fwlite/$CMSSW_VERSION/external/$SCRAM_ARCH/data/Fireworks
-ln -s  ../../../../../../../../slc7_amd64_gcc900/cms/data-Fireworks-Geometry/*/Fireworks/Geometry .
+ln -s  ../../../../../../../../$SCRAM_ARCH/cms/data-Fireworks-Geometry/*/Fireworks/Geometry .
 
 add search path to CMSSW_SEARCH_PATH in env script
 CMSSW_SEARCH_PATH=$CMSSW_SEARCH_PATH:$CMSSW_RELEASE_BASE/external/$SCRAM_ARCH/data
